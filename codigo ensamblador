@@ -1,0 +1,147 @@
+#include <Arduino.h>
+
+// Definimos pines para los botones
+const int buttonSum = 2;
+const int buttonRes = 3;
+const int buttonMul = 4;
+const int buttonDiv = 5;
+
+
+// Definimos los pines del display de 7 segmentos
+const int segmentPins[] = {6, 7, 8, 9, 10, 11, 12}; // a, b, c, d, e, f, g
+
+// Tabla para mostrar números del 0 al 9 en el display (cátodo común)
+const byte digits[10] = {
+  B00111111, // 0
+  B00000110, // 1
+  B01011011, // 2
+  B01001111, // 3
+  B01100110, // 4
+  B01101101, // 5
+  B01111101, // 6
+  B00000111, // 7
+  B01111111, // 8
+  B01101111  // 9
+};
+
+byte num1, num2, result;
+
+// Función para mostrar un número en el display de 7 segmentos
+void displayNumber(byte num) {
+  if (num > 9) {
+    Serial.println("Resultado mayor que 9, no se puede mostrar en el display.");
+    return;
+  }
+  for (int i = 0; i < 7; i++) {
+    digitalWrite(segmentPins[i], bitRead(digits[num], i));
+  }
+}
+
+// Función para limpiar el display
+void clearDisplay() {
+  for (int i = 0; i < 7; i++) {
+    digitalWrite(segmentPins[i], LOW);
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("En línea, esperando instrucciones...");
+  
+  // Configurar botones como entradas con resistencia pull-up
+  pinMode(buttonSum, INPUT_PULLUP);
+  pinMode(buttonRes, INPUT_PULLUP);
+  pinMode(buttonMul, INPUT_PULLUP);
+  pinMode(buttonDiv, INPUT_PULLUP);
+  
+
+  // Configurar pines del display como salida
+  for (int i = 0; i < 7; i++) {
+    pinMode(segmentPins[i], OUTPUT);
+  }
+  
+  clearDisplay();
+}
+
+void loop() {
+  // Leer datos desde el monitor serial
+  if (Serial.available()) {
+    Serial.println("Ingrese dos números binarios de hasta 4 bits (ejemplo: 1010 0011):");
+    while (Serial.available() < 9) {} // Esperar a que se ingresen suficientes datos
+    
+    num1 = strtol(Serial.readStringUntil(' ').c_str(), NULL, 2);
+    num2 = strtol(Serial.readStringUntil('\n').c_str(), NULL, 2);
+    
+    Serial.print("Número 1: ");
+    Serial.println(num1, BIN);
+    Serial.print("Número 2: ");
+    Serial.println(num2, BIN);
+    
+    Serial.println("Ingrese la operación: sum, res, mul, div, and, or, xor");
+    while (!Serial.available()) {} // Esperar a que se ingrese una operación
+    String operation = Serial.readStringUntil('\n');
+    operation.trim();
+
+    if (operation == "sum") {
+      result = num1 + num2;
+    } else if (operation == "res") {
+      result = num1 - num2;
+    } else if (operation == "mul") {
+      result = num1 * num2;
+    } else if (operation == "div") {
+      if (num2 != 0) {
+        result = num1 / num2;
+      } else {
+        Serial.println("Error: División por cero.");
+        result = 0;
+      }
+    } else if (operation == "and") {
+      result = num1 & num2;
+    } else if (operation == "or") {
+      result = num1 | num2;
+    } else if (operation == "xor") {
+      result = num1 ^ num2;
+    } else {
+      Serial.println("Operación no reconocida.");
+      result = 0;
+    }
+
+    Serial.print("Resultado: ");
+    Serial.println(result, BIN);
+    displayNumber(result);
+  }
+
+  // Leer botones físicos para realizar operaciones
+  if (digitalRead(buttonSum) == HIGH) {
+    Serial.println("Botón Suma presionado");
+    result = num1 + num2;
+    displayNumber(result);
+    delay(200);
+  }
+
+  if (digitalRead(buttonRes) == HIGH) {
+    Serial.println("Botón Resta presionado");
+    result = num1 - num2;
+    displayNumber(result);
+    delay(200);
+  }
+
+  if (digitalRead(buttonMul) == HIGH) {
+    Serial.println("Botón Multiplicación presionado");
+    result = num1 * num2;
+    displayNumber(result);
+    delay(200);
+  }
+
+  if (digitalRead(buttonDiv) == HIGH) {
+    Serial.println("Botón División presionado");
+    if (num2 != 0) {
+      result = num1 / num2;
+    } else {
+      Serial.println("Error: División por cero.");
+      result = 0;
+    }
+    displayNumber(result);
+    delay(200);
+
+  }}
